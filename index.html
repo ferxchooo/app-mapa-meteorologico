@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador Geográfico Profesional</title>
+    <!-- CSS de Leaflet para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Localizador Geográfico Global</h1>
+        <p>Consumo de API OpenStreetMap y OpenWeatherMap. Por Fernando Rodea Obregón</p>
+    </header>
+
+    <main>
+        <div class="search-container">
+            <input type="text" id="city-input" placeholder="Introduce una ciudad (ej. Toluca, Madrid)...">
+            <button id="search-btn">Consultar Clima y Mapa</button>
+        </div>
+        
+        <div class="dashboard">
+            <!-- Tarjeta de datos climáticos -->
+            <div id="weather-card" class="weather-card">
+                <p>Introduce una ubicación para desplegar los datos meteorológicos en tiempo real.</p>
+            </div>
+            <!-- Contenedor del Mapa -->
+            <div id="map-container" class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JS de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

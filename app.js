@@ -1,56 +1,77 @@
+// Tu API Key activa de OpenWeatherMap
+
+
+// Inicialización global del mapa de Leaflet
+let map = L.map('map').setView([19.4326, -99.1332], 5); // Vista inicial por defecto (México)
+let marker;
+
+// Cargar la capa visual del mapa desde OpenStreetMap
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
 document.getElementById('search-btn').addEventListener('click', async () => {
     const city = document.getElementById('city-input').value.trim();
     const weatherCard = document.getElementById('weather-card');
 
     if (!city) {
-        weatherCard.innerHTML = "<p style='color: #fee2e2;'>Por favor, escribe un lugar válido.</p>";
+        weatherCard.innerHTML = "<p style='color: #ef4444;'>Por favor, escribe una ciudad válida.</p>";
         return;
     }
 
-    weatherCard.innerHTML = "<p>Consultando base de datos geográfica y meteorológica remota...</p>";
+    weatherCard.innerHTML = "<p>Consultando satélites y bases de datos...</p>";
 
     try {
-        // Consumo asíncrono a la API Nominatim de OpenStreetMap
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
-        const data = await response.json();
+        // 1. Obtener coordenadas con Nominatim (OpenStreetMap)
+        const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
+        const geoData = await geoResponse.json();
 
-        if (data.length === 0) {
-            weatherCard.innerHTML = "<p style='color: #fee2e2;'>✖ No se encontraron datos para esa ubicación.</p>";
+        if (geoData.length === 0) {
+            weatherCard.innerHTML = "<p style='color: #ef4444;'>✖ No se encontró la ubicación geográfica.</p>";
             return;
         }
 
-        const lugar = data[0];
+        const lat = geoData[0].lat;
+        const lon = geoData[0].lon;
+        const displayName = geoData[0].display_name;
 
-        // Lógica de datos climáticos
-        let temp, humidity, condition;
-        if (city.toLowerCase() === 'lerma') {
-            temp = "27.4";
-            humidity = "91";
-            condition = "Tormenta Meteorológica";
-        } else {
-            temp = (Math.random() * (35 - 5) + 5).toFixed(1);
-            humidity = Math.floor(Math.random() * (100 - 40) + 40);
-            condition = ["Despejado", "Nublado", "Lluvia Ligera", "Tormenta Eléctrica"][Math.floor(Math.random() * 4)];
-        }
+        // 2. Obtener clima real con OpenWeatherMap usando las coordenadas
+        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=es`);
+        const weatherData = await weatherResponse.json();
 
-        // Renderizado e inyección en el DOM
+        const temp = weatherData.main.temp.toFixed(1);
+        const humidity = weatherData.main.humidity;
+        const condition = weatherData.weather[0].description;
+        // Capitalizar la primera letra de la condición climática
+        const conditionCapitalized = condition.charAt(0).toUpperCase() + condition.slice(1);
+
+        // 3. Actualizar la interfaz (DOM)
         weatherCard.innerHTML = `
-            <h3>Ubicación Localizada: ${city}</h3>
-            <p class="description"><strong>Descripción oficial:</strong> ${lugar.display_name}</p>
-            <div class="geo-data">
-                <p><strong>Latitud:</strong> ${lugar.lat} &nbsp; | &nbsp; <strong>Longitud:</strong> ${lugar.lon}</p>
-            </div>
-            <hr style="border: 0.5px solid #4ade80; margin: 15px 0;">
+            <h3 style="margin-top:0; color:#fff;">${geoData[0].name || city}</h3>
+            <p class="description">${displayName}</p>
             <div class="weather-data">
-                <h4>Parámetros Climatológicos</h4>
-                <p><strong>Temperatura:</strong> ${temp}°C</p>
-                <p><strong>Humedad:</strong> ${humidity}%</p>
-                <p><strong>Condición:</strong> ${condition}</p>
+                <p><strong>Temperatura:</strong> <span>${temp}°C</span></p>
+                <p><strong>Humedad:</strong> <span>${humidity}%</span></p>
+                <p><strong>Condición:</strong> <span>${conditionCapitalized}</span></p>
+                <p><strong>Coordenadas:</strong> <span>${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}</span></p>
             </div>
-            <div class="success-footer">Datos de mapa meteorológico sincronizados con éxito.</div>
+            <div class="success-footer">✓ Conexión exitosa a OpenWeatherMap y OpenStreetMap</div>
         `;
+
+        // 4. Actualizar el Mapa
+        const newLatLng = new L.LatLng(lat, lon);
+        map.setView(newLatLng, 12); // Acercar el mapa a la nueva ubicación
+        
+        // Colocar o mover el marcador
+        if (marker) {
+            marker.setLatLng(newLatLng);
+        } else {
+            marker = L.marker(newLatLng).addTo(map);
+        }
+        marker.bindPopup(`<b>${geoData[0].name || city}</b><br>${conditionCapitalized}`).openPopup();
+
     } catch (error) {
         console.error(error);
-        weatherCard.innerHTML = "<p style='color: #fee2e2;'>✖ Error en la comunicación asíncrona con el servidor.</p>";
+        weatherCard.innerHTML = "<p style='color: #ef4444;'>✖ Error al conectar con los servidores meteorológicos.</p>";
     }
 });
