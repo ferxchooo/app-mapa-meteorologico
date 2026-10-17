@@ -3,34 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscador Geográfico Profesional</title>
-    <!-- CSS de Leaflet para el mapa -->
+    <title>Localizador Geográfico Global</title>
+    <!-- CSS de Leaflet para el Mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Localizador Geográfico Global</h1>
-        <p>Consumo de API OpenStreetMap y OpenWeatherMap. Por Fernando Rodea Obregón</p>
-    </header>
-
-    <main>
-        <div class="search-container">
-            <input type="text" id="city-input" placeholder="Introduce una ciudad (ej. Toluca, Madrid)...">
-            <button id="search-btn">Consultar Clima y Mapa</button>
-        </div>
-        
-        <div class="dashboard">
-            <!-- Tarjeta de datos climáticos -->
-            <div id="weather-card" class="weather-card">
-                <p>Introduce una ubicación para desplegar los datos meteorológicos en tiempo real.</p>
+    <div class="container">
+        <header>
+            <h1>Localizador Geográfico Global</h1>
+            <p>Consumo de API OpenStreetMap y Open-Meteo. Por Fernando Rodea Obregón</p>
+            
+            <div class="search-box">
+                <input type="text" id="cityInput" placeholder="Ingresa una ciudad (ej. Toluca)">
+                <button id="searchBtn">Consultar Clima y Mapa</button>
             </div>
-            <!-- Contenedor del Mapa -->
-            <div id="map-container" class="map-container">
+        </header>
+
+        <main class="content">
+            <!-- Tarjeta de Clima -->
+            <div class="card weather-card">
+                <h2 id="cityName">Ciudad</h2>
+                <p id="cityLocation" class="subtitle">Ubicación</p>
+                
+                <div class="weather-data">
+                    <div class="data-row">
+                        <span>Temperatura:</span>
+                        <span id="tempValue">-- °C</span>
+                    </div>
+                    <hr>
+                    <div class="data-row">
+                        <span>Humedad:</span>
+                        <span id="humValue">-- %</span>
+                    </div>
+                    <hr>
+                    <div class="data-row">
+                        <span>Condición:</span>
+                        <span id="condValue">--</span>
+                    </div>
+                    <hr>
+                    <div class="data-row">
+                        <span>Coordenadas:</span>
+                        <span id="coordValue">--</span>
+                    </div>
+                </div>
+                
+                <div id="statusMessage" class="status success">
+                    Esperando consulta...
+                </div>
+            </div>
+
+            <!-- Tarjeta de Mapa -->
+            <div class="card map-card">
                 <div id="map"></div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <!-- JS de Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

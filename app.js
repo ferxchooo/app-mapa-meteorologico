@@ -1,77 +1,114 @@
-// Tu API Key activa de OpenWeatherMap
+// 1. Inicializar el mapa de Leaflet con OpenStreetMap oficial
+const map = L.map('map').setView([19.2826, -99.6557], 10); // Empieza en Toluca por defecto
 
-
-// Inicialización global del mapa de Leaflet
-let map = L.map('map').setView([19.4326, -99.1332], 5); // Vista inicial por defecto (México)
-let marker;
-
-// Cargar la capa visual del mapa desde OpenStreetMap
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
 
-document.getElementById('search-btn').addEventListener('click', async () => {
-    const city = document.getElementById('city-input').value.trim();
-    const weatherCard = document.getElementById('weather-card');
+let marker = L.marker([19.2826, -99.6557]).addTo(map);
 
-    if (!city) {
-        weatherCard.innerHTML = "<p style='color: #ef4444;'>Por favor, escribe una ciudad válida.</p>";
-        return;
-    }
+// Referencias a los elementos del HTML
+const cityInput = document.getElementById('cityInput');
+const searchBtn = document.getElementById('searchBtn');
+const statusMessage = document.getElementById('statusMessage');
 
-    weatherCard.innerHTML = "<p>Consultando satélites y bases de datos...</p>";
-
-    try {
-        // 1. Obtener coordenadas con Nominatim (OpenStreetMap)
-        const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
-        const geoData = await geoResponse.json();
-
-        if (geoData.length === 0) {
-            weatherCard.innerHTML = "<p style='color: #ef4444;'>✖ No se encontró la ubicación geográfica.</p>";
-            return;
-        }
-
-        const lat = geoData[0].lat;
-        const lon = geoData[0].lon;
-        const displayName = geoData[0].display_name;
-
-        // 2. Obtener clima real con OpenWeatherMap usando las coordenadas
-        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=es`);
-        const weatherData = await weatherResponse.json();
-
-        const temp = weatherData.main.temp.toFixed(1);
-        const humidity = weatherData.main.humidity;
-        const condition = weatherData.weather[0].description;
-        // Capitalizar la primera letra de la condición climática
-        const conditionCapitalized = condition.charAt(0).toUpperCase() + condition.slice(1);
-
-        // 3. Actualizar la interfaz (DOM)
-        weatherCard.innerHTML = `
-            <h3 style="margin-top:0; color:#fff;">${geoData[0].name || city}</h3>
-            <p class="description">${displayName}</p>
-            <div class="weather-data">
-                <p><strong>Temperatura:</strong> <span>${temp}°C</span></p>
-                <p><strong>Humedad:</strong> <span>${humidity}%</span></p>
-                <p><strong>Condición:</strong> <span>${conditionCapitalized}</span></p>
-                <p><strong>Coordenadas:</strong> <span>${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}</span></p>
-            </div>
-            <div class="success-footer">✓ Conexión exitosa a OpenWeatherMap y OpenStreetMap</div>
-        `;
-
-        // 4. Actualizar el Mapa
-        const newLatLng = new L.LatLng(lat, lon);
-        map.setView(newLatLng, 12); // Acercar el mapa a la nueva ubicación
-        
-        // Colocar o mover el marcador
-        if (marker) {
-            marker.setLatLng(newLatLng);
-        } else {
-            marker = L.marker(newLatLng).addTo(map);
-        }
-        marker.bindPopup(`<b>${geoData[0].name || city}</b><br>${conditionCapitalized}`).openPopup();
-
-    } catch (error) {
-        console.error(error);
-        weatherCard.innerHTML = "<p style='color: #ef4444;'>✖ Error al conectar con los servidores meteorológicos.</p>";
+// Evento al hacer clic en buscar
+searchBtn.addEventListener('click', () => {
+    const city = cityInput.value.trim();
+    if (city !== '') {
+        buscarUbicacion(city);
     }
 });
+
+// Función para traducir los códigos de Open-Meteo a Español
+function traducirClima(codigo) {
+    const climas = {
+        0: 'Despejado',
+        1: 'Mayormente despejado',
+        2: 'Parcialmente nublado',
+        3: 'Nublado',
+        45: 'Niebla',
+        48: 'Niebla con escarcha',
+        51: 'Llovizna ligera',
+        53: 'Llovizna moderada',
+        55: 'Llovizna densa',
+        61: 'Lluvia leve',
+        63: 'Lluvia moderada',
+        65: 'Lluvia fuerte',
+        80: 'Chubascos leves',
+        81: 'Chubascos moderados',
+        82: 'Chubascos violentos',
+        95: 'Tormenta eléctrica'
+    };
+    return climas[codigo] || 'Desconocido';
+}
+
+// 2. Buscar coordenadas con Nominatim (OpenStreetMap)
+function buscarUbicacion(ciudad) {
+    statusMessage.textContent = 'Buscando...';
+    statusMessage.className = 'status success';
+
+    // Se mantiene tu correo como identificador para evitar bloqueos
+    const urlNominatim = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ciudad)}&format=json&limit=1`;
+    
+    fetch(urlNominatim, {
+        headers: {
+            'User-Agent': 'LocalizadorClimaApp/1.0 (al222410839@gmail.com)'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            const nombreCompleto = data[0].display_name;
+
+            // Actualizar la tarjeta con el nombre
+            document.getElementById('cityName').textContent = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
+            document.getElementById('cityLocation').textContent = nombreCompleto;
+            document.getElementById('coordValue').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+            // Mover el mapa
+            map.setView([lat, lon], 12);
+            marker.setLatLng([lat, lon]).bindPopup(ciudad).openPopup();
+
+            // Llamar a Open-Meteo usando las coordenadas recién descubiertas
+            buscarClima(lat, lon);
+        } else {
+            statusMessage.textContent = '❌ Ciudad no encontrada.';
+            statusMessage.className = 'status error';
+        }
+    })
+    .catch(error => {
+        console.error('Error Nominatim:', error);
+        statusMessage.textContent = '❌ Error al conectar con el servidor de mapas.';
+        statusMessage.className = 'status error';
+    });
+}
+
+// 3. Buscar el clima con Open-Meteo usando las coordenadas
+function buscarClima(lat, lon) {
+    const urlMeteo = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code`;
+
+    fetch(urlMeteo)
+    .then(response => response.json())
+    .then(data => {
+        const temp = data.current.temperature_2m;
+        const hum = data.current.relative_humidity_2m;
+        const codigoClima = data.current.weather_code;
+
+        // Actualizar la tarjeta de clima
+        document.getElementById('tempValue').textContent = `${temp} °C`;
+        document.getElementById('humValue').textContent = `${hum} %`;
+        document.getElementById('condValue').textContent = traducirClima(codigoClima);
+
+        statusMessage.textContent = '✓ Conexión exitosa a OpenStreetMap y Open-Meteo';
+        statusMessage.className = 'status success';
+    })
+    .catch(error => {
+        console.error('Error Open-Meteo:', error);
+        statusMessage.textContent = '❌ Error al conectar con Open-Meteo.';
+        statusMessage.className = 'status error';
+    });
+}
